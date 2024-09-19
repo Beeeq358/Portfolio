@@ -5,17 +5,36 @@ using UnityEngine;
 public class GhostPlayer : MonoBehaviour
 {
     public Ghost ghost;
+    public int shipChoice = 1;
     private float timeValue;
     private int index1;
     private int index2;
-
-   
+    [SerializeField] private GameObject ship1Model, ship2Model;
 
 
     private void Awake()
     {
         StartPlaying();
     }
+    private void Start()
+    {
+        shipChoice = ghost.shipChoice;
+        if (shipChoice == 1)
+        {
+            ship1Model.SetActive(true);
+            ship2Model.SetActive(false);
+        }
+        else if (shipChoice == 2)
+        {
+            ship1Model.SetActive(false);
+            ship2Model.SetActive(true);
+        }
+        else
+        {
+            Debug.LogError("Ship choice value is not valid for Ghost! shipChoice: " + shipChoice);
+        }
+    }
+
     public void StartPlaying()
     {
         timeValue = 0;

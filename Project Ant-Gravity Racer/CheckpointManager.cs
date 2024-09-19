@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -20,12 +21,14 @@ public class CheckpointManager : MonoBehaviour
     private bool T3checkpoint4Clear = false;
     private float storedLapTime = 0;
     private float bestLapTime = 0;
+    private int bestLapShip;
     private Vector3 respawnPos;
     private Quaternion respawnRot = Quaternion.Euler(0, 0, 0);
     public Ghost ghost;
     public Ghost bestLapGhost;
     public GhostPlayer ghostPlayer;
     private GhostRecorder ghostRecorder;
+    private SaveData loadedData;
 
 
 
@@ -38,8 +41,9 @@ public class CheckpointManager : MonoBehaviour
     private Rigidbody rb;
     private void Start()
     {
+        loadedData = SaveSystem.LoadGhost();
+        
         ghostRecorder = GetComponent<GhostRecorder>();
-
         bestLapGhost.isRecord = false;
         ghost.isRecord = false;
         bestLapGhost.isReplay = false;
@@ -50,6 +54,22 @@ public class CheckpointManager : MonoBehaviour
         rb = GetComponent<Rigidbody>();
 
         respawnPos = new Vector3(372, 53.5f, 363);
+
+        if (loadedData != null)
+        {
+            bestLapTime = loadedData.lapTime;
+            bestLapShip = loadedData.shipChoice;
+            for (int i = 0; i < loadedData.timeStamp.Length; i++)
+            {
+                bestLapGhost.timeStamp.Add(loadedData.timeStamp[i]);
+                bestLapGhost.position.Add(new Vector3(loadedData.positionx[i], loadedData.positiony[i], loadedData.positionz[i]));
+                bestLapGhost.rotation.Add(new Vector3(loadedData.rotationx[i], loadedData.rotationy[i], loadedData.rotationz[i]));
+            }
+
+            bestLapGhost.isReplay = true;
+        }
+        else
+            Debug.LogError("No loadeddata found");
     }
 
     private void FixedUpdate()
@@ -116,7 +136,7 @@ public class CheckpointManager : MonoBehaviour
                     bestLapGhost.position = new List<Vector3>(ghost.position);
                     bestLapGhost.rotation = new List<Vector3>(ghost.rotation);
                     bestLapGhost.timeStamp = new List<float>(ghost.timeStamp);
-
+                    bestLapGhost.lapTime = bestLapTime;
                 }
             }
             else

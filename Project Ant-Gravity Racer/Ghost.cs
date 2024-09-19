@@ -15,11 +15,15 @@ public class Ghost : ScriptableObject
     public List<Vector3> position;
     public List<Vector3> rotation;
 
+    public float lapTime;
+    public int shipChoice;
+
     public void ResetData()
     {
         timeStamp.Clear();
         position.Clear();
         rotation.Clear();
+        lapTime = 0;
     }
 
     

@@ -1,47 +1,70 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Windows;
-using Input = UnityEngine.Input;
 
-public class PlayerMovement : MonoBehaviour
+public class PlayerMovement : Movement
 {
-    public float hoverHeight;
-    public LayerMask groundLayer;
-    public LayerMask boostPad;
-    [SerializeField] private GameObject particle;
-    [SerializeField] private float magForce;
-
-    private float antiGravityForce;
-    [SerializeField] private float thrust;
-    [SerializeField] private float rotationSpeed;
-    private float newPlayerPosition;
-    private float oldPlayerPosition;
-    private float playerSpeed;
     private bool slowDown = false;
     private bool airbrakeL = false;
     private bool airbrakeR = false;
-    // private float rotationAmount = 10f;
-    [SerializeField] private float gravity;
     private float moveFloat = 0;
     private float airbrakeLeftMoveFloat = 0;
     private float airbrakeRightMoveFloat = 0;
     private bool isThrust;
-
     private Controls input = null;
+    private int shipChoice = 1;
 
+    [Header("Ship Stats")]
+    [SerializeField] private float turningRateShip1;
+    [SerializeField] private float turningRateShip2;
+    [SerializeField] private float airbrakeStrengthShip1;
+    [SerializeField] private float airbrakeStrengthShip2;
+    [SerializeField] private float thrustShip1;
+    [SerializeField] private float thrustShip2;
+    [SerializeField] private float weightShip1;
+    [SerializeField] private float weightShip2;
+    [SerializeField] private float basePitchShip1;
+    [SerializeField] private float basePitchShip2;
 
+    [Header("Current Ship Stats")]
+    public float shipTurningRate;
+    public float shipAirbrakeStrength;
+    public float shipThrust;
+    public float shipWeight;
 
-
-    private Rigidbody rb;
-
-
-
-    private void Start()
+    [Header("Other")]
+    [SerializeField] private GameObject particle;
+    [SerializeField] private PlayerPreferences player1;
+    private void Awake()
     {
-        rb = GetComponent<Rigidbody>();
+        shipChoice = player1.shipChoice;
+        GetComponent<EngineController>().shipChoice = shipChoice;
+        if (shipChoice == 1)
+        {
+            ship1Model.SetActive(true);
+            ship2Model.SetActive(false);
+            shipTurningRate = turningRateShip1;
+            shipAirbrakeStrength = airbrakeStrengthShip1;
+            shipThrust = thrustShip1;
+            shipWeight = weightShip1;
+        }
+        else if (shipChoice == 2)
+        {
+            ship1Model.SetActive(false);
+            ship2Model.SetActive(true);
+            shipTurningRate = turningRateShip2;
+            shipAirbrakeStrength = airbrakeStrengthShip2;
+            shipThrust = thrustShip2;
+            shipWeight = weightShip2;
+        }
+        else
+        {
+            Debug.LogError("Ship choice value is not valid! shipChoice: " + shipChoice);
+        }
+    }
+    protected override void Start()
+    {
+        base.Start();
         particle.SetActive(false);
     }
 
@@ -92,7 +115,7 @@ public class PlayerMovement : MonoBehaviour
         input.Player.AirbrakeRight.canceled += OnAirbrakeRightCancelled;
     }
 
-    private void FixedUpdate()
+    protected override void FixedUpdate()
     {
 
         if (!isThrust || airbrakeR || airbrakeL)
@@ -103,10 +126,10 @@ public class PlayerMovement : MonoBehaviour
         {
             slowDown = false;
         }
-        transform.Rotate(Vector3.up * (moveFloat + airbrakeRightMoveFloat + airbrakeLeftMoveFloat) * rotationSpeed);
+        transform.Rotate((moveFloat + (airbrakeRightMoveFloat * shipAirbrakeStrength) + (airbrakeLeftMoveFloat * shipAirbrakeStrength)) * rotationSpeed * Vector3.up);
         if (isThrust)
         {
-            rb.AddForce(transform.forward * thrust);
+            rb.AddForce(shipThrust * thrust * transform.forward);
 
             if (airbrakeL && !airbrakeR)
             {
@@ -123,129 +146,25 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
+        base.FixedUpdate();
+    }
 
+    protected override void Boost()
+    {
+        base.Boost();
+        StartCoroutine(EmittingTimer());
+    }
 
-
-        /*
-        if (Input.GetKey(KeyCode.D))
-        {
-            transform.Rotate(Vector3.up * rotationSpeed);
-            //rb.AddTorque(transform.up * rotationSpeed);
-        }
-        
-
-        if (Input.GetKey(KeyCode.A))
-        {
-            transform.Rotate(-Vector3.up * rotationSpeed);
-            //rb.AddTorque(transform.up * -rotationSpeed);
-        }
-        */
-        /*
-        if (Input.GetKey(KeyCode.RightArrow))
-        {
-            slowDown = true;
-            airbrakeR = true;
-            //rb.AddForce(transform.right * 1f * thrust);
-            //rb.MovePosition(rb.position + (transform.right * 0.3f));
-            transform.Rotate(Vector3.up * 1.4f * rotationSpeed);
-            //rb.AddTorque(transform.up * 1.4f * rotationSpeed);
-            if (Input.GetKey(KeyCode.W))
-            {
-                if (!Input.GetKey(KeyCode.LeftArrow))
-                {
-                    rb.AddForce(-transform.forward * 0.3f * thrust);
-
-                }
-                else
-                {
-                    Debug.Log("Anti Reverse Brakes");
-                    rb.AddForce(-transform.forward * 0.5f * thrust);
-                }
-            }
-        } */
-        /* else if(!Input.GetKey(KeyCode.RightArrow))
-        {
-            airbrakeR = false;
-        } */
-
-
-        /*if (Input.GetKey(KeyCode.LeftArrow))
-        {
-            //airbrakeL = true;
-            //rb.AddForce(-transform.right * 1f * thrust);
-            //rb.MovePosition(rb.position + (-transform.right * 0.3f));
-            transform.Rotate(-Vector3.up * 1.4f * rotationSpeed);
-            //rb.AddTorque(-transform.up * 1.4f * rotationSpeed);
-            if (isThrust)
-            {
-                if (!Input.GetKey(KeyCode.RightArrow))
-                {
-                    rb.AddForce(-transform.forward * 0.3f * thrust);
-                }
-                else
-                {
-                    Debug.Log("Anti Reverse Brakes");
-                    rb.AddForce(-transform.forward * 0.5f * thrust);
-                   
-                }
-            }
-            
-        }
-        */
-
-        /* else if (!Input.GetKey(KeyCode.LeftArrow))
-        {
-            airbrakeL = false;
-        } */
-
-
-        newPlayerPosition = rb.transform.position.x + rb.transform.position.z;
-        playerSpeed = newPlayerPosition - oldPlayerPosition;
-        //Debug.Log(transform.localPosition.z);
-        oldPlayerPosition = newPlayerPosition;
-
-        RaycastHit hit;
-        if (Physics.Raycast(transform.position, Vector3.down, out hit, Mathf.Infinity, boostPad))
-        {
-           if (hit.distance < hoverHeight * 2)
-            {
-                rb.AddForce(transform.forward * 5 * thrust);
-                StartCoroutine(EmittingTimer());
-            }
-        }
-        else if (Physics.Raycast(transform.position, Vector3.down, out hit, Mathf.Infinity, groundLayer))
-        {
-            float distanceToGround = hoverHeight - hit.distance;
-            antiGravityForce = distanceToGround * Physics.gravity.magnitude;
-            if (hit.distance < hoverHeight)
-            {
-                rb.AddForce(Vector3.up * antiGravityForce * magForce, ForceMode.Force);
-            }
-            else if (hit.distance > hoverHeight)
-            {
-                rb.AddForce(Vector3.down * gravity);
-            }
-        }
-
-        /* 
-        if (airbrakeL && !airbrakeR)
-        {
-            transform.rotation = Quaternion.Euler(new Vector3(0, 0, rotationAmount));
-        }
-        else if (airbrakeR && !airbrakeL)
-        {
-            transform.rotation = Quaternion.Euler(new Vector3(0, 0, -rotationAmount));
-        }
-        else
-        {
-            transform.rotation = Quaternion.Euler(new Vector3(0, 0, 0));
-        } */
+    protected override void PastHoverHeight()
+    {
+        weight = shipWeight;
+        base.PastHoverHeight();
     }
 
     private void OnMovePerformed(InputAction.CallbackContext value)
     {
         float inputValue = value.ReadValue<float>();
-        moveFloat = inputValue;
+        moveFloat = inputValue * shipTurningRate;
     }
     private void OnMoveCancelled(InputAction.CallbackContext value)
     {
